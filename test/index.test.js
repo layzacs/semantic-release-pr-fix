@@ -11,11 +11,27 @@ const mockAnalyzeCommits = jest.fn().mockImplementation((pluginConfig, context) 
   return null;
 });
 
+// Mock the @semantic-release/release-notes-generator module
+const mockGenerateNotes = jest.fn().mockImplementation((pluginConfig, context) => {
+  if (context.commits && context.commits.length > 0) {
+    const msg = context.commits[0].message.toLowerCase();
+    if (msg.startsWith('feat:')) return 'Feature: ' + context.commits[0].message;
+    if (msg.startsWith('fix:')) return 'Fix: ' + context.commits[0].message;
+    if (msg.startsWith('breaking:')) return 'BREAKING CHANGE: ' + context.commits[0].message;
+    return 'Other changes: ' + context.commits[0].message;
+  }
+  return 'No changes';
+});
+
 jest.mock('@semantic-release/commit-analyzer', () => ({
   analyzeCommits: mockAnalyzeCommits
 }));
 
-const { analyzeCommits } = require('../src/index');
+jest.mock('@semantic-release/release-notes-generator', () => ({
+  generateNotes: mockGenerateNotes
+}));
+
+const { analyzeCommits, generateNotes } = require('../src/index');
 
 describe('semantic-release-pr-fix', () => {
   beforeEach(() => {
@@ -130,5 +146,85 @@ describe('semantic-release-pr-fix', () => {
     expect(context.commits[1].message).toBe('This is a normal commit message without semantic prefix');
     
     expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, context);
+  });
+
+  describe('generateNotes', () => {
+    test('should process Azure DevOps PR commit message for release notes', async () => {
+      const context = {
+        commits: [
+          {
+            message: 'Merged PR 1234: feat: add new feature',
+            subject: 'Merged PR 1234: feat: add new feature'
+          }
+        ]
+      };
+
+      const notes = await generateNotes({}, context);
+      
+      // Check that the prefix was removed
+      expect(context.commits[0].message).toBe('feat: add new feature');
+      expect(context.commits[0].subject).toBe('feat: add new feature');
+      
+      // Check that notes generator was called with the transformed commits
+      expect(mockGenerateNotes).toHaveBeenCalledWith({}, context);
+      
+      // Our mock generator should return notes based on the first commit
+      expect(notes).toBe('Feature: feat: add new feature');
+    });
+
+    test('should handle commits without the Azure DevOps PR prefix when generating notes', async () => {
+      const context = {
+        commits: [
+          {
+            message: 'fix: resolve bug in login function',
+            subject: 'fix: resolve bug in login function'
+          }
+        ]
+      };
+
+      const originalMessage = context.commits[0].message;
+      const originalSubject = context.commits[0].subject;
+      
+      const notes = await generateNotes({}, context);
+      
+      // Message should be unchanged
+      expect(context.commits[0].message).toBe(originalMessage);
+      expect(context.commits[0].subject).toBe(originalSubject);
+      
+      // Check that notes generator was called
+      expect(mockGenerateNotes).toHaveBeenCalledWith({}, context);
+      
+      // Our mock generator should return notes based on the commit
+      expect(notes).toBe('Fix: fix: resolve bug in login function');
+    });
+
+    test('should handle multiple commits with and without prefixes for release notes', async () => {
+      const context = {
+        commits: [
+          {
+            message: 'Merged PR 1234: feat: add new feature',
+            subject: 'Merged PR 1234: feat: add new feature'
+          },
+          {
+            message: 'fix: resolve bug in login function',
+            subject: 'fix: resolve bug in login function'
+          },
+          {
+            message: 'Merged PR 56789123: breaking: change API structure',
+            subject: 'Merged PR 56789123: breaking: change API structure'
+          }
+        ]
+      };
+
+      const notes = await generateNotes({}, context);
+      
+      // Check that prefixes were removed only where they existed
+      expect(context.commits[0].message).toBe('feat: add new feature');
+      expect(context.commits[1].message).toBe('fix: resolve bug in login function');
+      expect(context.commits[2].message).toBe('breaking: change API structure');
+      
+      expect(mockGenerateNotes).toHaveBeenCalledWith({}, context);
+      expect(notes).toBe('Feature: feat: add new feature');
+    });
   });
 });

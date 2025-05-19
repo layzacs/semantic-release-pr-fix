@@ -1,4 +1,5 @@
 const { analyzeCommits: semanticAnalyzeCommits } = require('@semantic-release/commit-analyzer');
+const { generateNotes: semanticGenerateNotes } = require('@semantic-release/release-notes-generator');
 
 /**
  * Parse a commit message to extract the PR prefix from Azure DevOps
@@ -51,4 +52,23 @@ async function analyzeCommits(pluginConfig, context) {
   return semanticAnalyzeCommits(pluginConfig, context);
 }
 
-module.exports = { analyzeCommits };
+/**
+ * Generate release notes for semantic-release.
+ *
+ * @param {Object} pluginConfig The plugin configuration.
+ * @param {Object} context The semantic-release context.
+ * @param {Array<Object>} context.commits The commits to analyze.
+ *
+ * @returns {Promise<String>} The release notes for the new release.
+ */
+async function generateNotes(pluginConfig, context) {
+  // Process each commit to handle Azure DevOps PR merge messages
+  if (context.commits) {
+    context.commits = context.commits.map(processAzureDevOpsCommit);
+  }
+  
+  // Pass the modified context to the original notes generator
+  return semanticGenerateNotes(pluginConfig, context);
+}
+
+module.exports = { analyzeCommits, generateNotes };
