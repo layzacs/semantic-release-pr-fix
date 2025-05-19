@@ -1,0 +1,26 @@
+{
+  "name": "semantic-release-pr-fix",
+  "version": "1.0.0",
+  "description": "Wrapper for @semantic-release/commit-analyzer that handles Azure DevOps PR merge commits",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "semantic-release",
+    "commit-analyzer",
+    "azure-devops",
+    "pr"
+  ],
+  "author": "layzacs",
+  "license": "MIT",
+  "dependencies": {
+    "@semantic-release/commit-analyzer": "^9.0.2"
+  },
+  "peerDependencies": {
+    "semantic-release": ">=18.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
