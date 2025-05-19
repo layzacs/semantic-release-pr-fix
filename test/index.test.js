@@ -1,20 +1,21 @@
 // Mock the @semantic-release/commit-analyzer module
-jest.mock('@semantic-release/commit-analyzer', () => {
-  return jest.fn().mockImplementation((pluginConfig, context) => {
-    // Just return the type based on the first commit message for testing
-    if (context.commits && context.commits.length > 0) {
-      const msg = context.commits[0].message.toLowerCase();
-      if (msg.startsWith('feat:')) return 'minor';
-      if (msg.startsWith('fix:')) return 'patch';
-      if (msg.startsWith('breaking:')) return 'major';
-      return null;
-    }
+const mockAnalyzeCommits = jest.fn().mockImplementation((pluginConfig, context) => {
+  // Just return the type based on the first commit message for testing
+  if (context.commits && context.commits.length > 0) {
+    const msg = context.commits[0].message.toLowerCase();
+    if (msg.startsWith('feat:')) return 'minor';
+    if (msg.startsWith('fix:')) return 'patch';
+    if (msg.startsWith('breaking:')) return 'major';
     return null;
-  });
+  }
+  return null;
 });
 
+jest.mock('@semantic-release/commit-analyzer', () => ({
+  analyzeCommits: mockAnalyzeCommits
+}));
+
 const { analyzeCommits } = require('../src/index');
-const commitAnalyzer = require('@semantic-release/commit-analyzer');
 
 describe('semantic-release-pr-fix', () => {
   beforeEach(() => {
@@ -38,7 +39,7 @@ describe('semantic-release-pr-fix', () => {
     expect(context.commits[0].subject).toBe('feat: add new feature');
     
     // Check that commit-analyzer was called with the transformed commits
-    expect(commitAnalyzer).toHaveBeenCalledWith({}, context);
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, context);
 
     expect(result).toBe('minor');
   });
@@ -63,7 +64,7 @@ describe('semantic-release-pr-fix', () => {
     expect(context.commits[0].subject).toBe(originalSubject);
     
     // Check that commit-analyzer was called
-    expect(commitAnalyzer).toHaveBeenCalledWith({}, context);
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, context);
     
     // Our mock analyzer should return 'patch' for a fix
     expect(result).toBe('patch');
@@ -81,8 +82,8 @@ describe('semantic-release-pr-fix', () => {
           subject: 'fix: resolve bug in login function'
         },
         {
-          message: 'Merged PR 5678: breaking: change API structure',
-          subject: 'Merged PR 5678: breaking: change API structure'
+          message: 'Merged PR 56789123: breaking: change API structure',
+          subject: 'Merged PR 56789123: breaking: change API structure'
         }
       ]
     };
@@ -94,19 +95,19 @@ describe('semantic-release-pr-fix', () => {
     expect(context.commits[1].message).toBe('fix: resolve bug in login function');
     expect(context.commits[2].message).toBe('breaking: change API structure');
     
-    expect(commitAnalyzer).toHaveBeenCalledWith({}, context);
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, context);
   });
 
   test('should handle empty or undefined commits', async () => {
     // Test with undefined commits
     const emptyContext = {};
     await analyzeCommits({}, emptyContext);
-    expect(commitAnalyzer).toHaveBeenCalledWith({}, emptyContext);
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, emptyContext);
     
     // Test with empty commits array
     const contextWithEmptyCommits = { commits: [] };
     await analyzeCommits({}, contextWithEmptyCommits);
-    expect(commitAnalyzer).toHaveBeenCalledWith({}, contextWithEmptyCommits);
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, contextWithEmptyCommits);
   });
 
   test('should handle complex Azure DevOps PR messages', async () => {
@@ -128,6 +129,6 @@ describe('semantic-release-pr-fix', () => {
     expect(context.commits[0].message).toBe('fix: bugfix with detailed explanation of what was fixed');
     expect(context.commits[1].message).toBe('This is a normal commit message without semantic prefix');
     
-    expect(commitAnalyzer).toHaveBeenCalledWith({}, context);
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, context);
   });
 });

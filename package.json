@@ -1,6 +1,6 @@
 {
   "name": "semantic-release-pr-fix",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Wrapper for @semantic-release/commit-analyzer that handles Azure DevOps PR merge commits",
   "main": "src/index.js",
   "scripts": {

@@ -1,4 +1,4 @@
-const commitAnalyzer = require('@semantic-release/commit-analyzer');
+const { analyzeCommits: semanticAnalyzeCommits } = require('@semantic-release/commit-analyzer');
 
 /**
  * Parse a commit message to extract the PR prefix from Azure DevOps
@@ -48,7 +48,7 @@ async function analyzeCommits(pluginConfig, context) {
   }
   
   // Pass the modified context to the original commit analyzer
-  return commitAnalyzer(pluginConfig, context);
+  return semanticAnalyzeCommits(pluginConfig, context);
 }
 
 module.exports = { analyzeCommits };
