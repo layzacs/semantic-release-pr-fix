@@ -2,6 +2,8 @@
 
 A wrapper for [commit-analyzer](https://github.com/semantic-release/commit-analyzer) and [release-notes-generator](https://github.com/semantic-release/release-notes-generator) that handles Azure DevOps PR merge commits.
 
+[![npm latest version](https://img.shields.io/npm/v/semantic-release-pr-fix/latest.svg)](https://www.npmjs.com/package/semantic-release-pr-fix)
+
 ## Problem
 
 When using semantic-release with Azure DevOps repositories, merged PRs have a prefix added to the commit message: `Merged PR 1234: original message`. This prevents semantic-release from properly detecting release types because it expects semantic commit messages to start with prefixes like `feat:`, `fix:`, etc.
