@@ -1,6 +1,6 @@
 # semantic-release-pr-fix
 
-A wrapper for [commit-analyzer](https://github.com/semantic-release/commit-analyzer) that handles Azure DevOps PR merge commits.
+A wrapper for [commit-analyzer](https://github.com/semantic-release/commit-analyzer) and [release-notes-generator](https://github.com/semantic-release/release-notes-generator) that handles Azure DevOps PR merge commits.
 
 ## Problem
 
@@ -22,20 +22,57 @@ In your `.releaserc.json` or `release.config.js` file:
 {
   "plugins": [
     ["semantic-release-pr-fix", {
-      "preset": "angular",
-      "parserOpts": {
-        "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES", "BREAKING"]
+      "commitAnalyzerConfig": {
+        "preset": "angular",
+        "parserOpts": {
+          "noteKeywords": ["BREAKING CHANGE", "BREAKING CHANGES", "BREAKING"]
+        }
+      },
+      "notesGeneratorConfig": {
+        "preset": "angular",
+        "writerOpts": {
+          "commitsSort": ["subject", "scope"]
+        }
       }
     }],
-    "@semantic-release/release-notes-generator",
     "@semantic-release/npm",
     "@semantic-release/github"
   ]
 }
 ```
 
-The plugin will take any configuration options and pass them to the underlying `@semantic-release/commit-analyzer` after processing the commit messages.
+This plugin replaces both `@semantic-release/commit-analyzer` and `@semantic-release/release-notes-generator` by wrapping them with Azure DevOps PR merge commit compatibility.
+
+## Configuration
+
+The plugin supports the following configuration options:
+
+| Option | Description |
+|--------|-------------|
+| `commitAnalyzerConfig` | Configuration object passed directly to `@semantic-release/commit-analyzer`. See [commit-analyzer documentation](https://github.com/semantic-release/commit-analyzer#options) for available options. |
+| `notesGeneratorConfig` | Configuration object passed directly to `@semantic-release/release-notes-generator`. See [release-notes-generator documentation](https://github.com/semantic-release/release-notes-generator#options) for available options. Set to `false` to disable release notes generation. |
+
+### Disabling Release Notes Generation
+
+If you want to use a different release notes generator plugin, you can disable the built-in notes generation:
+
+```json
+{
+  "plugins": [
+    ["semantic-release-pr-fix", {
+      "commitAnalyzerConfig": {
+        "preset": "angular"
+      },
+      "notesGeneratorConfig": false
+    }],
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/npm"
+  ]
+}
+```
 
 ## How it works
 
-The plugin processes each commit message and removes the Azure DevOps PR merge prefix (`Merged PR xxxx:`) before passing the commits to the standard semantic-release commit analyzer. This allows your semantic commit messages to be properly recognized even when they're part of merged PRs in Azure DevOps.
+The plugin processes each commit message and removes the Azure DevOps PR merge prefix (`Merged PR xxxx:`) before passing the commits to the standard semantic-release plugins. This allows your semantic commit messages to be properly recognized even when they're part of merged PRs in Azure DevOps.
+
+It handles both version determination (via `commit-analyzer`) and release notes generation (via `release-notes-generator`), ensuring consistent processing of PR merge commits throughout the semantic-release pipeline.

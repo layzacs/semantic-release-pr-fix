@@ -54,8 +54,39 @@ describe('semantic-release-pr-fix', () => {
     expect(context.commits[0].message).toBe('feat: add new feature');
     expect(context.commits[0].subject).toBe('feat: add new feature');
     
-    // Check that commit-analyzer was called with the transformed commits
+    // Check that commit-analyzer was called with the transformed commits and empty config
     expect(mockAnalyzeCommits).toHaveBeenCalledWith({}, context);
+
+    expect(result).toBe('minor');
+  });
+  
+  test('should pass commitAnalyzerConfig to the analyzer', async () => {
+    const context = {
+      commits: [
+        {
+          message: 'Merged PR 1234: feat: add new feature',
+          subject: 'Merged PR 1234: feat: add new feature'
+        }
+      ]
+    };
+    
+    const pluginConfig = {
+      commitAnalyzerConfig: {
+        preset: 'angular',
+        releaseRules: [
+          {type: 'docs', scope: 'README', release: 'patch'}
+        ]
+      }
+    };
+
+    const result = await analyzeCommits(pluginConfig, context);
+    
+    // Check that the prefix was removed
+    expect(context.commits[0].message).toBe('feat: add new feature');
+    expect(context.commits[0].subject).toBe('feat: add new feature');
+    
+    // Check that commit-analyzer was called with the specific config
+    expect(mockAnalyzeCommits).toHaveBeenCalledWith(pluginConfig.commitAnalyzerConfig, context);
 
     expect(result).toBe('minor');
   });
@@ -165,11 +196,66 @@ describe('semantic-release-pr-fix', () => {
       expect(context.commits[0].message).toBe('feat: add new feature');
       expect(context.commits[0].subject).toBe('feat: add new feature');
       
-      // Check that notes generator was called with the transformed commits
+      // Check that notes generator was called with the transformed commits and empty config
       expect(mockGenerateNotes).toHaveBeenCalledWith({}, context);
       
       // Our mock generator should return notes based on the first commit
       expect(notes).toBe('Feature: feat: add new feature');
+    });
+    
+    test('should pass notesGeneratorConfig to the notes generator', async () => {
+      const context = {
+        commits: [
+          {
+            message: 'Merged PR 1234: feat: add new feature',
+            subject: 'Merged PR 1234: feat: add new feature'
+          }
+        ]
+      };
+      
+      const pluginConfig = {
+        notesGeneratorConfig: {
+          preset: 'angular',
+          writerOpts: {
+            commitsSort: ['subject', 'scope']
+          }
+        }
+      };
+
+      const notes = await generateNotes(pluginConfig, context);
+      
+      // Check that the prefix was removed
+      expect(context.commits[0].message).toBe('feat: add new feature');
+      expect(context.commits[0].subject).toBe('feat: add new feature');
+      
+      // Check that notes generator was called with the specific config
+      expect(mockGenerateNotes).toHaveBeenCalledWith(pluginConfig.notesGeneratorConfig, context);
+      
+      // Our mock generator should return notes based on the first commit
+      expect(notes).toBe('Feature: feat: add new feature');
+    });
+    
+    test('should skip notes generation if notesGeneratorConfig is false', async () => {
+      const context = {
+        commits: [
+          {
+            message: 'Merged PR 1234: feat: add new feature',
+            subject: 'Merged PR 1234: feat: add new feature'
+          }
+        ]
+      };
+      
+      const pluginConfig = {
+        notesGeneratorConfig: false
+      };
+
+      const notes = await generateNotes(pluginConfig, context);
+      
+      // Notes should be undefined
+      expect(notes).toBeUndefined();
+      
+      // The notes generator should not be called
+      expect(mockGenerateNotes).not.toHaveBeenCalled();
     });
 
     test('should handle commits without the Azure DevOps PR prefix when generating notes', async () => {

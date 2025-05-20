@@ -37,38 +37,51 @@ function processAzureDevOpsCommit(commit) {
  * Analyze commits with semantic-release.
  *
  * @param {Object} pluginConfig The plugin configuration.
+ * @param {Object} pluginConfig.commitAnalyzerConfig The configuration for the commit analyzer.
  * @param {Object} context The semantic-release context.
  * @param {Array<Object>} context.commits The commits to analyze.
  *
  * @returns {Promise<String|null>} The semantic release type, or `null` if no release has to be done.
  */
 async function analyzeCommits(pluginConfig, context) {
+  // Extract config for commit analyzer
+  const { commitAnalyzerConfig } = pluginConfig || {};
+  
   // Process each commit to handle Azure DevOps PR merge messages
   if (context.commits) {
     context.commits = context.commits.map(processAzureDevOpsCommit);
   }
   
-  // Pass the modified context to the original commit analyzer
-  return semanticAnalyzeCommits(pluginConfig, context);
+  // Pass the modified context to the original commit analyzer with its config
+  return semanticAnalyzeCommits(commitAnalyzerConfig ?? {}, context);
 }
 
 /**
  * Generate release notes for semantic-release.
  *
  * @param {Object} pluginConfig The plugin configuration.
+ * @param {Object|boolean} pluginConfig.notesGeneratorConfig The configuration for the release notes generator.
  * @param {Object} context The semantic-release context.
  * @param {Array<Object>} context.commits The commits to analyze.
  *
  * @returns {Promise<String>} The release notes for the new release.
  */
 async function generateNotes(pluginConfig, context) {
+  // Extract config for notes generator
+  const { notesGeneratorConfig } = pluginConfig || {};
+  
+  // If notes generation is disabled, return early
+  if (notesGeneratorConfig === false) { 
+    return; 
+  }
+  
   // Process each commit to handle Azure DevOps PR merge messages
   if (context.commits) {
     context.commits = context.commits.map(processAzureDevOpsCommit);
   }
   
-  // Pass the modified context to the original notes generator
-  return semanticGenerateNotes(pluginConfig, context);
+  // Pass the modified context to the original notes generator with its config
+  return semanticGenerateNotes(notesGeneratorConfig ?? {}, context);
 }
 
 module.exports = { analyzeCommits, generateNotes };
